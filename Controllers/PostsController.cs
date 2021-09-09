@@ -28,10 +28,14 @@ namespace BlogApi.Controllers
 
             foreach(var p in  _context.Posts.Include(p => p.Comments))
             {
-                lastComments.Add(p.Comments.OrderBy(x => x.CommentDate)
-                    .LastOrDefault());
+                var lastComment = p.Comments.OrderBy(x => x.CommentDate)
+                    .LastOrDefault();
+                if (lastComment != null) {
+                    lastComments.Add(lastComment);
+                }
+                
             }
-            lastComments.OrderBy(c => c.CommentDate).ToList();
+            lastComments = lastComments.OrderBy(c => c.CommentDate).ToList();
             foreach( var c in lastComments)
             {
                 result.Insert(0, c.Post.Title + " - " + c.CommentText + " (" + c.CommentDate.ToString("d MMMM", CultureInfo.CreateSpecificCulture("ru-RU")) + ") ");
@@ -42,7 +46,6 @@ namespace BlogApi.Controllers
         [HttpGet("posts")]
         public async Task<ActionResult<IEnumerable<Post>>> GetPosts()
         {
-            _context.Posts.Include(p => p.Comments);
             return await _context.Posts.ToListAsync();
         }
         // GET: api/Comments
@@ -57,13 +60,10 @@ namespace BlogApi.Controllers
         public async Task<ActionResult<Post>> GetPost(int id)
         {
             var post = await _context.Posts.FindAsync(id);
-           
-     
             if (post == null)
             {
                 return NotFound();
             }
-            _context.Entry(post).Collection(p => p.Comments).Load();
             return post;
         }
         [HttpGet("comments/{id}")]
@@ -78,9 +78,24 @@ namespace BlogApi.Controllers
 
             return comment;
         }
-       
+        [HttpPost("posts")]
+        public async Task<ActionResult<Post>> PostPost(Post post)
+        {
+            _context.Posts.Add(post);
+            await _context.SaveChangesAsync();
 
-       
-      
+            return CreatedAtAction(nameof(GetPost), new { id = post.ID }, post);
+        }
+
+        [HttpPost("comments")]
+        public async Task<ActionResult<Comment>> PostComment(Comment comment)
+        {
+            _context.Comments.Add(comment);
+            await _context.SaveChangesAsync();
+            return CreatedAtAction(nameof(GetComment), new { id = comment.CommentId,}, comment);
+        }
+
+
+
     }
 }
