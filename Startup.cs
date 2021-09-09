@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 using BlogApi.Models;
 using System.Text.Json.Serialization;
+using System;
 
 namespace BlogApi
 {
@@ -22,13 +23,8 @@ namespace BlogApi
         public void ConfigureServices(IServiceCollection services)
         {
 
-            services.AddControllers().AddJsonOptions(x =>
-                x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve);
-            services.AddDbContext<BlogApiContext>(opt =>
-               opt.UseInMemoryDatabase(databaseName: "Blogs")
-            );
-
-            
+            services.AddControllers();
+            services.AddDbContext<BlogApiContext>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

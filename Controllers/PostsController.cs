@@ -10,62 +10,62 @@ using System.Globalization;
 
 namespace BlogApi.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/Blogs")]
     [ApiController]
-    public class BlogsController : ControllerBase
+    public class PostsController : ControllerBase
     {
         private readonly BlogApiContext _context;
 
-        public BlogsController(BlogApiContext context)
+        public PostsController(BlogApiContext context)
         {
             _context = context;
         }
-        [HttpGet("lastComments")]
+        [HttpGet("lastcomments")]
         public async Task<ActionResult<List<string>>> GetLastComments()
         {
+            var lastComments = new List<Comment>(); 
             var result = new List<string>();
-            var lastComments = new List<Comment>();
-            var posts = await _context.Posts.ToListAsync();
-            foreach(var post in posts)
+
+            foreach(var p in  _context.Posts.Include(p => p.Comments))
             {
-                var lastComment = await _context.Comments
-                    .Where(c => c.PostId == post.PostId)
-                    .OrderBy( x => x.CommentDate)
-                    .LastOrDefaultAsync();
-                lastComments.Add(lastComment);
+                lastComments.Add(p.Comments.OrderBy(x => x.CommentDate)
+                    .LastOrDefault());
             }
-            lastComments = lastComments.OrderBy(c => c.CommentDate).ToList();
-            foreach (var comment in lastComments)
+            lastComments.OrderBy(c => c.CommentDate).ToList();
+            foreach( var c in lastComments)
             {
-                result.Insert(0,posts.Find(p => p.PostId == comment.PostId).Title + " - " + comment.CommentText.ToString() + " (" + comment.CommentDate.ToString("d MMMM", CultureInfo.CreateSpecificCulture("ru-RU")) + ") ");
+                result.Insert(0, c.Post.Title + " - " + c.CommentText + " (" + c.CommentDate.ToString("d MMMM", CultureInfo.CreateSpecificCulture("ru-RU")) + ") ");
             }
             return result;
-        }// GET: api/Blogs
+        }
+        // GET: api/Posts
         [HttpGet("posts")]
         public async Task<ActionResult<IEnumerable<Post>>> GetPosts()
         {
+            _context.Posts.Include(p => p.Comments);
             return await _context.Posts.ToListAsync();
         }
-
+        // GET: api/Comments
         [HttpGet("comments")]
         public async Task<ActionResult<IEnumerable<Comment>>> GetComments()
         {
             return await _context.Comments.ToListAsync();
         }
 
-        // GET: api/Blogs/5
+        // GET: api/Posts/5
         [HttpGet("posts/{id}")]
         public async Task<ActionResult<Post>> GetPost(int id)
         {
             var post = await _context.Posts.FindAsync(id);
+           
+     
             if (post == null)
             {
                 return NotFound();
             }
-
+            _context.Entry(post).Collection(p => p.Comments).Load();
             return post;
         }
-
         [HttpGet("comments/{id}")]
         public async Task<ActionResult<Comment>> GetComment(int id)
         {
@@ -78,24 +78,9 @@ namespace BlogApi.Controllers
 
             return comment;
         }
+       
 
        
-        [HttpPost("posts")]
-        public async Task<ActionResult<Post>> PostPost(Post post)
-        {
-            _context.Posts.Add(post);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetPost), new { id = post.PostId }, post);
-        }
-
-        [HttpPost("comments")]
-        public async Task<ActionResult<Comment>> PostComment(Comment comment)
-        {
-            _context.Comments.Add(comment);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetComment), new { id = comment.CommentId }, comment);
-        }
+      
     }
 }
