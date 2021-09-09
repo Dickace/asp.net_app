@@ -1,5 +1,5 @@
 # asp.net_app
-#### ASP.NET Web Api for Tomsk MCC. Using EFC where BD based on memory.
+#### ASP.NET Web Api for Tomsk MCC. Using EFC code-first with DB Sqlite.
 #### Requried API endpoint
 GET /api/blogs/lastcomments get all posts with last comment sorted by last comment date 
 ##### API Endpoints:
