@@ -23,22 +23,34 @@ namespace BlogApi.Controllers
         [HttpGet("lastcomments")]
         public async Task<ActionResult<List<string>>> GetLastComments()
         {
-            var lastComments = new List<Comment>(); 
             var result = new List<string>();
 
-            foreach(var p in  _context.Posts.Include(p => p.Comments))
+            var lac = _context.Comments.GroupBy(c => c.PostId)
+                                        .Select(g => new { postid = g.Key, commentDate = g.Max(c => c.CommentDate) })
+                                        .Join(_context.Comments,
+                                        gc => new { pi = gc.postid,cd = gc.commentDate },
+                                        c => new { pi = c.PostId,cd = c.CommentDate },
+                                        (gc, c) => new
+                                        {
+                                            gc.commentDate,
+                                            c.CommentText,
+                                            c.PostId
+                                        })
+                                        .Join(_context.Posts,
+                                        cc => cc.PostId,
+                                        p => p.ID,
+                                        (cc, p) => new
+                                        {
+                                            title = p.Title,
+                                            commentText = cc.CommentText,
+                                            commentDate = cc.commentDate,
+                                        })
+                                        .OrderByDescending(lc => lc.commentDate)
+                                        .Take(5);
+
+            foreach (var c in lac)
             {
-                var lastComment = p.Comments.OrderBy(x => x.CommentDate)
-                    .LastOrDefault();
-                if (lastComment != null) {
-                    lastComments.Add(lastComment);
-                }
-                
-            }
-            lastComments = lastComments.OrderBy(c => c.CommentDate).ToList();
-            foreach( var c in lastComments)
-            {
-                result.Insert(0, c.Post.Title + " - " + c.CommentText + " (" + c.CommentDate.ToString("d MMMM", CultureInfo.CreateSpecificCulture("ru-RU")) + ") ");
+                result.Add(c.title + " - " + c.commentText + " (" + c.commentDate.ToString("d MMMM", CultureInfo.CreateSpecificCulture("ru-RU")) + ") ");
             }
             return result;
         }
@@ -92,7 +104,7 @@ namespace BlogApi.Controllers
         {
             _context.Comments.Add(comment);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetComment), new { id = comment.CommentId,}, comment);
+            return CreatedAtAction(nameof(GetComment), new { id = comment.CommentId, }, comment);
         }
 
 
